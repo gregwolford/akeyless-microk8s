@@ -122,6 +122,21 @@ GCLOUD_CREDENTIALS_JSON=<path to credentials key>
      ```bash
      gcloud compute scp scripts/post_setup.sh [INSTANCE_NAME]:~/post_setup.sh --zone=[ZONE]
      ```
+     If you're running `post_setup.sh` on the VM, it expects to find the configuration file.
+
+   Use this command:
+   ```bash
+   gcloud compute scp config/config.properties [INSTANCE_NAME]:~/config.properties --zone=[ZONE]
+   ```
+
+   Ensure `post_setup.sh` loads it correctly:
+   ```bash
+   CONFIG_FILE=~/config.properties
+   if [ -f "$CONFIG_FILE" ]; then
+     source "$CONFIG_FILE"
+   fi
+   ```
+   
    - **Using FTP/SFTP Clients:**  
      If you prefer a graphical FTP/SFTP client, ensure that your account has the appropriate permissions and that firewall rules allow SFTP access.
 
