@@ -1,12 +1,39 @@
 #!/bin/bash
 # post_setup.sh
 # This script should be run on the VM after SSH-ing into it.
-# It installs required Microk8s add-ons and deploys the Akeyless unified gateway configuration.
+# It installs Microk8s and deploys the Akeyless unified gateway configuration.
 
-CONFIG_FILE="$(dirname "$0")/../config/config.properties"
+CONFIG_FILE=~/config.properties
 if [ -f "$CONFIG_FILE" ]; then
   source "$CONFIG_FILE"
 fi
+
+# Ensure snapd is installed (required for Microk8s)
+if ! command -v snap &> /dev/null; then
+  echo "Snap not found. Installing snapd..."
+  sudo apt update && sudo apt install -y snapd
+  sudo systemctl start snapd
+  sudo systemctl enable snapd
+  sudo ln -s /var/lib/snapd/snap /snap || true
+  export PATH=$PATH:/snap/bin
+fi
+
+# Install Microk8s if not already present
+if ! command -v microk8s &> /dev/null; then
+  echo "Installing Microk8s..."
+  sudo snap install microk8s --classic
+fi
+
+# Wait until microk8s becomes available
+echo "Waiting for microk8s command to become available..."
+for i in {1..20}; do
+  if command -v microk8s &> /dev/null; then
+    echo "microk8s is ready!"
+    break
+  fi
+  echo "microk8s not found yet... retrying in 5 seconds"
+  sleep 5
+done
 
 echo "Enabling necessary Microk8s add-ons: dns, storage, and ingress..."
 sudo microk8s enable dns storage ingress
