@@ -40,6 +40,12 @@ This repository provides a set of scripts and configuration files to help you se
 
    ```properties
    # GCP Settings
+# Static IP configuration
+STATIC_IP_NAME=my-gateway-ip
+REGION=us-central1
+
+# Akeyless Access Key (used for authentication)
+GATEWAY_ACCESS_KEY=<your_akeyless_access_key_here>
    PROJECT_ID=my-gcp-project
    ZONE=us-central1-a
    MACHINE_TYPE=n1-standard-1
@@ -64,6 +70,9 @@ This repository provides a set of scripts and configuration files to help you se
 
 2. **Run the VM Provisioning Script:**  
    This script reads the configuration and creates a new GCP VM.
+- Reserves a **static external IP** if it doesn't already exist
+- Assigns the static IP to the VM for consistency
+- Uses the static IP with `sslip.io` for TLS certificate provisioning
    ```bash
    chmod +x scripts/create_vm.sh
    ./scripts/create_vm.sh
@@ -112,6 +121,8 @@ This repository provides a set of scripts and configuration files to help you se
    ```
 2. **Execute the Post-Setup Script:**  
    This script will enable necessary Microk8s add-ons and deploy your Kubernetes resources:
+- Replaces the placeholder domain in `gateway-values.yaml` with your actual static IP (e.g., `34.56.78.90.sslip.io`)
+- Creates a Kubernetes secret using your access key (`GATEWAY_ACCESS_KEY`) and names it based on `GATEWAY_CREDENTIALS_SECRET`
    ```bash
    ./post_setup.sh
    ```
@@ -235,3 +246,14 @@ If you see a list of VMs or no error, it worked!
 
 ---
 
+
+---
+
+## 🔑 Verifying the Akeyless Access Key Secret
+After the post-setup script runs, you can verify that the secret was created correctly with:
+
+```bash
+sudo microk8s kubectl get secret $GATEWAY_CREDENTIALS_SECRET -o yaml
+```
+
+You should see `gateway-access-key` in the `data` section (base64-encoded).
