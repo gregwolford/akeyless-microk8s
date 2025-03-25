@@ -12,8 +12,19 @@ fi
 echo "Enabling necessary Microk8s add-ons: dns, storage, and ingress..."
 sudo microk8s enable dns storage ingress
 
+
+# Update gateway-values.yaml with the actual static IP as hostname
+STATIC_IP=$(gcloud compute addresses describe "$STATIC_IP_NAME" --region="$REGION" --format="value(address)")
+sed -i "s/hostname: \".*\.sslip\.io\"/hostname: \"$STATIC_IP.sslip.io\"/" ~/k8s/gateway-values.yaml
+
 echo "Waiting for Microk8s to be fully ready..."
 sleep 30
+
+
+# Create Kubernetes secret for Akeyless gateway authentication
+echo "Creating Kubernetes secret: $GATEWAY_CREDENTIALS_SECRET"
+sudo microk8s kubectl create secret generic "$GATEWAY_CREDENTIALS_SECRET" \
+  --from-literal=gateway-access-key="$GATEWAY_ACCESS_KEY" || true
 
 echo "Deploying Akeyless unified gateway and related resources..."
 
