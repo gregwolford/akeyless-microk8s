@@ -180,20 +180,7 @@ sudo microk8s kubectl get all
   sudo journalctl -u snap.microk8s.daemon-apiserver
   ```
 
-## 🔐 How to Create and Use a Google Cloud Service Account Key
-
-Visit: [https://console.cloud.google.com/iam-admin/serviceaccounts](https://console.cloud.google.com/iam-admin/serviceaccounts)
-
-1. Create a new service account
-2. Assign these roles:
-   - `Compute Admin`
-   - `Service Account User`
-   - `Viewer`
-3. Generate and download a **JSON key**
-4. Set the key path in `config/config.properties`:
-   ```properties
-   GCLOUD_CREDENTIALS_JSON=/absolute/path/to/key.json
-   ```
+  ```
 
 ### 🔑 Verifying the Akeyless Access Key Secret
 
