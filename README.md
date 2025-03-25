@@ -39,12 +39,6 @@ Visit: https://console.cloud.google.com/iam-admin/serviceaccounts
    GCLOUD_CREDENTIALS_JSON=<path to credentials key>
    ```
 
-## 🔑 Verifying the Akeyless Access Key Secret
-
-```bash
-sudo microk8s kubectl get secret $GATEWAY_CREDENTIALS_SECRET -o yaml
-```
-
 ## 🔐 Required IAM Permissions for the Service Account
 
 | Role Name            | Role ID                      | Purpose                                       |
@@ -208,11 +202,3 @@ sudo microk8s kubectl get secret $GATEWAY_CREDENTIALS_SECRET -o yaml
 ```
 
 ---
-
-## 🔐 Required IAM Permissions for the Service Account
-
-| Role Name              | Role ID                    | Purpose                                      |
-|------------------------|----------------------------|----------------------------------------------|
-| Compute Admin          | `roles/compute.admin`      | To create/manage VM instances and IPs       |
-| Service Account User   | `roles/iam.serviceAccountUser` | To allow using the service account itself   |
-| Viewer (recommended)   | `roles/viewer`             | Read-only access to most GCP resources       |
