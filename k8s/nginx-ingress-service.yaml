@@ -1,0 +1,21 @@
+# nginx-ingress-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-ingress-microk8s-controller
+  namespace: ingress
+spec:
+  type: LoadBalancer
+  selector:
+    name: nginx-ingress-microk8s
+  externalIPs:
+    - 34.56.91.21
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      name: http
+    - protocol: TCP
+      port: 443
+      targetPort: 443
+      name: https

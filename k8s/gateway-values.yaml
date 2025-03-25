@@ -1,0 +1,191 @@
+# gateway-values.yaml
+# (Contents as provided by Akeyless; see your attached version)
+############
+## Global ##
+############
+globalConfig:
+  gatewayAuth:
+    gatewayAccessId: p-ia0cysqaq6dsam
+    gatewayAccessType: access_key
+    gatewayCredentialsExistingSecret: access-key
+
+  allowedAccessPermissions:
+    - name: Administrators
+      access_id: p-hd117q7gwi7oam
+      sub_claims:
+        email:
+          - gregnwolford@gmail.com
+      permissions:
+        - admin
+
+  allowedAccessPermissionsExistingSecret:
+  authorizedAccessIDs:
+  serviceAccount:
+    create: false
+    serviceAccountName:
+    annotations:
+  clusterName: my-microk8s-gcp-gw
+  initialClusterDisplayName: my-microk8s-gcp-gw
+  configProtectionKeyName:
+  customerFragmentsExistingSecret:
+  TLSConf:
+    enabled: false
+    tlsExistingSecret:
+  metrics:
+    enabled: false
+    metricsExistingSecret:
+  httpProxySettings:
+    http_proxy: ""
+    https_proxy: ""
+    no_proxy: ""
+  clusterCache:
+    encryptionKeyExistingSecret:
+    enableTls: false
+    resources:
+      limits:
+        memory: 2Gi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+
+####################################################
+##          Default values for Gateway            ##
+####################################################
+gateway:
+  deployment:
+    annotations: {}
+    labels: {}
+    replicaCount: 2
+    image:
+      pullPolicy: IfNotPresent
+    pod:
+      annotations: {}
+    affinity:
+      enabled: false
+      data:
+    nodeSelector:
+    securityContext:
+      enabled: false
+      fsGroup: 0
+      runAsUser: 0
+    containerSecurityContext: {}
+    livenessProbe:
+      initialDelaySeconds: 60
+      periodSeconds: 30
+      failureThreshold: 10
+    readinessProbe:
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      timeoutSeconds: 5
+  service:
+    annotations: {}
+    labels: {}
+    type: ClusterIP
+    port: 8000
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    labels: {}
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-cluster-issuer
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+      nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+      nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+      nginx.ingress.kubernetes.io/client-body-buffer-size: 64k
+      nginx.ingress.kubernetes.io/client-header-buffer-size: 100k
+      nginx.ingress.kubernetes.io/http2-max-header-size: 96k
+      nginx.ingress.kubernetes.io/large-client-header-buffers: 4 100k
+      nginx.ingress.kubernetes.io/server-snippet: |
+        client_header_buffer_size 100k;
+        large_client_header_buffers 4 100k;
+    rules:
+      - servicePort: gateway
+        hostname: "34.56.91.21.sslip.io"
+    path: /
+    pathType: ImplementationSpecific
+    tls: true
+    certManager: true
+  resources: {}
+  hpa:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    cpuAvgUtil: 70
+    memAvgUtil: 70
+    annotations: {}
+  hsm:
+    enabled: false
+  persistence:
+    enabled: false
+
+######################################################
+## Default values for akeyless-secure-remote-access ##
+######################################################
+sra:
+  enabled: false
+  image:
+    pullPolicy: IfNotPresent
+  env: []
+  webConfig:
+    deployment:
+      annotations: {}
+      labels: {}
+    replicaCount: 1
+    persistence:
+      volumes: {}
+    livenessProbe:
+      initialDelaySeconds: 15
+      periodSeconds: 30
+      failureThreshold: 10
+    readinessProbe:
+      initialDelaySeconds: 15
+      periodSeconds: 30
+      timeoutSeconds: 5
+    resources:
+      requests:
+        cpu: 1
+        memory: 2G
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 10
+      cpuAvgUtil: 70
+      memAvgUtil: 70
+  sshConfig:
+    replicaCount: 1
+    CAPublicKey:
+    sshHostKeysPath:
+    annotations: {}
+    labels: {}
+    nodeSelector:
+    securityContext:
+      enabled: false
+      fsGroup: 0
+      runAsUser: 0
+    service:
+      annotations: {}
+      labels: {}
+      type: LoadBalancer
+      port: 22
+    livenessProbe:
+      failureThreshold: 5
+      periodSeconds: 30
+      timeoutSeconds: 5
+    readinessProbe:
+      initialDelaySeconds: 20
+      periodSeconds: 10
+      timeoutSeconds: 5
+    resources:
+      requests:
+        cpu: 1
+        memory: 2G
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 10
+      cpuAvgUtil: 70
+      memAvgUtil: 70

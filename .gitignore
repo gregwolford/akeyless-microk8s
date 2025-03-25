@@ -1,0 +1,4 @@
+# .gitignore
+
+# Exclude sensitive configuration files
+config/config.properties

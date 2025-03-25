@@ -1,0 +1,14 @@
+# pv.yml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-shared
+spec:
+  capacity:
+    storage: 50Gi  # Adjust as needed
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: shared-local-storage
+  hostPath:
+    path: /mnt/data/shared  # Base directory for shared use
