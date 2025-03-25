@@ -23,6 +23,35 @@ This repository provides a set of scripts and configuration files to help you se
 
 ## Prerequisites
 
+
+## 🔐 How to Create and Use a Google Cloud Service Account Key
+
+Visit: https://console.cloud.google.com/iam-admin/serviceaccounts
+
+1. Create a new service account
+2. Assign these roles:
+   - Compute Admin
+   - Service Account User
+   - Viewer
+3. Generate and download a JSON key
+4. Set the key path in `config/config.properties`:
+   ```properties
+   GCLOUD_CREDENTIALS_JSON=<path to credentials key>
+   ```
+
+## 🔑 Verifying the Akeyless Access Key Secret
+
+```bash
+sudo microk8s kubectl get secret $GATEWAY_CREDENTIALS_SECRET -o yaml
+```
+
+## 🔐 Required IAM Permissions for the Service Account
+
+| Role Name            | Role ID                      | Purpose                                       |
+|----------------------|------------------------------|-----------------------------------------------|
+| Compute Admin        | roles/compute.admin          | To create/manage VM instances and IPs         |
+| Service Account User | roles/iam.serviceAccountUser | To allow using the service account itself     |
+| Viewer (recommended) | roles/viewer                 | Read-only access to most GCP resources        |
 - **GCP CLI (gcloud):** Install and authenticate the [Google Cloud SDK](https://cloud.google.com/sdk).
 - **SSH Client:** To connect to your VM (gcloud provides a wrapper command).
 - **Bash Shell:** The scripts are written in bash.
@@ -40,7 +69,7 @@ This repository provides a set of scripts and configuration files to help you se
 
 ```properties
 # GCP Settings
-PROJECT_ID=microk8s-454218
+PROJECT_ID=<your-gcp-project-id>
 ZONE=us-central1-a
 MACHINE_TYPE=n1-standard-1
 IMAGE_FAMILY=debian-11
@@ -51,12 +80,12 @@ STATIC_IP_NAME=my-gateway-ip
 REGION=us-central1
 
 # Akeyless Gateway Settings
-GATEWAY_ACCESS_ID=p-ia0cysqaq6dsam
+GATEWAY_ACCESS_ID=<your-gateway-access-id>
 GATEWAY_CREDENTIALS_SECRET=access-key
 GATEWAY_ACCESS_KEY=<your_akeyless_access_key_here>
 
 # Path to your GCP service account credentials JSON file
-GCLOUD_CREDENTIALS_JSON=/home/gwolford/keys/microk8s-454218-e90180037e1f.json
+GCLOUD_CREDENTIALS_JSON=<path to credentials key>
 ```
 
 **Note:** This file is listed in `.gitignore` so it will not be committed to GitHub.
