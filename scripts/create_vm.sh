@@ -1,6 +1,8 @@
 #!/bin/bash
 # create_vm.sh
 # Script to provision a GCP VM using gcloud CLI.
+gcloud components update --quiet
+gcloud auth activate-service-account --key-file "$GCLOUD_CREDENTIALS_JSON"
 # It loads configuration variables from config/config.properties.
 
 # Determine the path to the config file (assumes script is in scripts/)

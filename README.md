@@ -164,3 +164,74 @@ sudo microk8s kubectl get all
 ## License
 
 Specify your license information here.
+
+---
+
+## 🔐 How to Create and Use a Google Cloud Service Account Key
+
+This section walks you through creating a service account in Google Cloud and obtaining a credentials JSON file used by the automation scripts.
+
+### Step 1: Open the IAM & Admin Console
+
+Visit: [https://console.cloud.google.com/iam-admin/serviceaccounts](https://console.cloud.google.com/iam-admin/serviceaccounts)
+
+Make sure the correct GCP **project is selected** in the top bar.
+
+---
+
+### Step 2: Create a Service Account
+
+1. Click **“Create Service Account”**
+2. Enter:
+   - **Service account name:** e.g., `akeyless-deployer`
+   - **Service account ID:** leave default or customize
+3. Click **Create and Continue**
+
+#### Grant access (roles):
+
+Add these roles:
+- `Compute Admin`
+- `Service Account User`
+- *(Optional: `Kubernetes Engine Admin` if using GKE)*
+
+Click **Continue** and then **Done**
+
+---
+
+### Step 3: Create and Download the Key
+
+1. Click your new service account in the list
+2. Go to the **“Keys”** tab
+3. Click **“Add Key” > “Create new key”**
+4. Choose **JSON** format and click **Create**
+
+Your browser will download the key file, e.g., `akeyless-deployer-abc123.json`.
+
+---
+
+### Step 4: Store the Key and Update the Config
+
+Move the key file to a secure location, and update this line in `config/config.properties`:
+
+```properties
+GCLOUD_CREDENTIALS_JSON=/absolute/path/to/akeyless-deployer-abc123.json
+```
+
+This will be used in the `create_vm.sh` script for authentication.
+
+---
+
+### Step 5: Test Authentication (Optional)
+
+Run the following to confirm your credentials work:
+
+```bash
+gcloud auth activate-service-account --key-file=/path/to/key.json
+gcloud config set project your-project-id
+gcloud compute instances list
+```
+
+If you see a list of VMs or no error, it worked!
+
+---
+
