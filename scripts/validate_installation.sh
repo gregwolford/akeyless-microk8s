@@ -16,13 +16,24 @@ warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 echo
 info "🔧 Running Auto-Fix Validation for Akeyless Gateway Environment..."
 
-# Ensure microk8s is accessible in the path
+# Load config file
+CONFIG_FILE=~/config.properties
+if [ -f "$CONFIG_FILE" ]; then
+  info "Sourcing configuration from $CONFIG_FILE"
+  source "$CONFIG_FILE"
+  echo "GATEWAY_CREDENTIALS_SECRET is set to: $GATEWAY_CREDENTIALS_SECRET"
+else
+  fail "Configuration file not found at $CONFIG_FILE – cannot validate or create secrets"
+  exit 1
+fi
+
+# Ensure microk8s is in the path
 if [ ! -f /usr/local/bin/microk8s ]; then
   sudo ln -s /snap/bin/microk8s /usr/local/bin/microk8s || true
   info "Linked /snap/bin/microk8s to /usr/local/bin/microk8s"
 fi
 
-# Validate Microk8s
+# Check microk8s status
 if sudo microk8s status --wait-ready &>/dev/null; then
   success "Microk8s is running and ready"
 else
@@ -30,8 +41,7 @@ else
 fi
 
 # Enable required addons
-REQUIRED_ADDONS=(dns ingress storage)
-for addon in "${REQUIRED_ADDONS[@]}"; do
+for addon in dns ingress storage; do
   if microk8s status | grep -A 100 'addons:' | grep enabled | grep -q "$addon"; then
     success "$addon addon is enabled"
   else
@@ -48,37 +58,14 @@ else
   success "Docker is installed"
 fi
 
-# Attempt Docker socket access
-DOCKER_SOCKET_OK=false
+# Docker socket access
 if docker info &>/dev/null; then
   success "Docker socket is accessible"
-  DOCKER_SOCKET_OK=true
 else
-  fail "Docker socket permission denied"
-  info "Trying to fix Docker socket permission..."
-  sudo usermod -aG docker "$USER"
-  sleep 2
-  if docker info &>/dev/null; then
-    success "Docker socket now accessible"
-    DOCKER_SOCKET_OK=true
-  else
-    warn "Still cannot access Docker socket – your session likely needs to be restarted"
-  fi
+  warn "Docker socket permission denied. Try 'newgrp docker' or log out and log back in."
 fi
 
-# Check if docker group is in current session
-GROUPS=$(groups $USER)
-info "Current groups for $USER: $GROUPS"
-[[ "$GROUPS" == *docker* ]] && success "User is in docker group" || warn "User not in docker group in current session (may require logout)"
-[[ "$GROUPS" == *microk8s* ]] && success "User is in microk8s group" || sudo usermod -aG microk8s $USER
-
-if ! $DOCKER_SOCKET_OK; then
-  warn "Docker socket still inaccessible. Try running:"
-  echo "    newgrp docker"
-  echo "    OR log out and log back in to refresh group membership"
-fi
-
-# Check kube config
+# kubeconfig check
 if [ -f ~/.kube/config ]; then
   success "~/.kube/config found"
 else
@@ -87,30 +74,23 @@ else
   microk8s config > ~/.kube/config && success "kube config created" || fail "Failed to generate kube config"
 fi
 
-# Check kubectl access
+# Cluster access check
 if microk8s kubectl get nodes &>/dev/null; then
   success "kubectl can access the cluster"
 else
   fail "kubectl cannot access the cluster"
 fi
 
-# Check Kubernetes resources
-info "Checking Kubernetes resources in default namespace..."
-microk8s kubectl get all -n default
-
-# Check secret
-CONFIG_FILE=~/config.properties
-if [ -f "$CONFIG_FILE" ]; then
-  source "$CONFIG_FILE"
-  info "Checking for Kubernetes secret: $GATEWAY_CREDENTIALS_SECRET"
-  SECRET=$(microk8s kubectl get secret "$GATEWAY_CREDENTIALS_SECRET" -o json 2>/dev/null || echo "")
-  if [[ "$SECRET" == *"gateway-access-key"* ]]; then
-    success "Akeyless gateway secret exists and is valid"
-  else
-    fail "Akeyless gateway secret is missing or misconfigured"
-  fi
+# Secret validation or creation
+info "Checking for Kubernetes secret: $GATEWAY_CREDENTIALS_SECRET"
+SECRET_OUTPUT=$(microk8s kubectl get secret "$GATEWAY_CREDENTIALS_SECRET" -o json 2>/dev/null || echo "")
+if [[ "$SECRET_OUTPUT" == *"gateway-access-key"* ]]; then
+  success "Akeyless gateway secret exists and is valid"
 else
-  fail "Configuration file not found at ~/config.properties – cannot check secret"
+  warn "Secret missing or misconfigured – attempting to create it..."
+  microk8s kubectl delete secret "$GATEWAY_CREDENTIALS_SECRET" 2>/dev/null || true
+  microk8s kubectl create secret generic "$GATEWAY_CREDENTIALS_SECRET" \
+    --from-literal=gateway-access-key="$GATEWAY_ACCESS_KEY" && success "Secret created successfully" || fail "Failed to create secret"
 fi
 
 echo
