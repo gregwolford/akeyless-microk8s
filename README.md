@@ -125,10 +125,10 @@ If you receive a permissions error such as:
 ```
 Insufficient permissions to access MicroK8s.
 You can either try again with sudo or add the user gwolford to the 'microk8s' group:
-    sudo usermod -a -G microk8s gwolford
+    sudo usermod -a -G microk8s <username>
     sudo chown -R gwolford ~/.kube
 ```
-You must log out and log back in (or restart your terminal session) for group changes to take effect.
+You must run the sudo commands, log out and log back in (or restart your terminal session) for group changes to take effect. Then restart post_setup.sh
 
 ### 5. Validate and Test the Deployment
 
