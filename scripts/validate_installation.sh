@@ -5,11 +5,13 @@ set -euo pipefail
 CYAN="\033[1;36m"
 GREEN="\033[1;32m"
 RED="\033[1;31m"
+YELLOW="\033[1;33m"
 NC="\033[0m"
 
 info() { echo -e "${CYAN}[INFO]${NC} $1"; }
 success() { echo -e "${GREEN}[OK]${NC} $1"; }
 fail() { echo -e "${RED}[FAIL]${NC} $1"; }
+warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 
 echo
 info "🔧 Running Auto-Fix Validation for Akeyless Gateway Environment..."
@@ -47,26 +49,34 @@ else
 fi
 
 # Attempt Docker socket access
+DOCKER_SOCKET_OK=false
 if docker info &>/dev/null; then
   success "Docker socket is accessible"
+  DOCKER_SOCKET_OK=true
 else
   fail "Docker socket permission denied"
   info "Trying to fix Docker socket permission..."
   sudo usermod -aG docker "$USER"
-  newgrp docker || true
   sleep 2
   if docker info &>/dev/null; then
     success "Docker socket now accessible"
+    DOCKER_SOCKET_OK=true
   else
-    fail "Still cannot access Docker socket – please try logging out and back in"
+    warn "Still cannot access Docker socket – your session likely needs to be restarted"
   fi
 fi
 
-# Fix group membership
+# Check if docker group is in current session
 GROUPS=$(groups $USER)
 info "Current groups for $USER: $GROUPS"
-[[ "$GROUPS" == *docker* ]] || sudo usermod -aG docker $USER
-[[ "$GROUPS" == *microk8s* ]] || sudo usermod -aG microk8s $USER
+[[ "$GROUPS" == *docker* ]] && success "User is in docker group" || warn "User not in docker group in current session (may require logout)"
+[[ "$GROUPS" == *microk8s* ]] && success "User is in microk8s group" || sudo usermod -aG microk8s $USER
+
+if ! $DOCKER_SOCKET_OK; then
+  warn "Docker socket still inaccessible. Try running:"
+  echo "    newgrp docker"
+  echo "    OR log out and log back in to refresh group membership"
+fi
 
 # Check kube config
 if [ -f ~/.kube/config ]; then
