@@ -1,10 +1,10 @@
 #!/bin/bash
 # post_setup.sh
 
-LOG_FILE="/var/log/akeyless-post-setup-20250326-130634.log"
-exec > >(tee -a $LOG_FILE) 2>&1
-
 set -euo pipefail
+
+LOG_FILE="/var/log/akeyless-post-setup-$(date +%Y%m%d-%H%M%S).log"
+exec > >(tee -a $LOG_FILE) 2>&1
 
 log() { echo -e "\033[1;32m[INFO]\033[0m $1"; }
 warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
@@ -18,6 +18,10 @@ if [ -f "$CONFIG_FILE" ]; then
 else
   fail "Configuration file not found at $CONFIG_FILE"
   exit 1
+fi
+
+if [ -z "${STATIC_IP:-}" ]; then
+  warn "STATIC_IP not set in config.properties – will detect from ingress"
 fi
 
 log "Installing Microk8s if not already present..."
@@ -44,7 +48,6 @@ sudo snap alias microk8s.helm3 helm || warn "Failed to alias helm"
 log "Adding current user to docker and microk8s groups..."
 sudo usermod -aG docker $USER
 sudo usermod -aG microk8s $USER
-
 warn "Group membership updated. You may need to log out and log back in for changes to take effect."
 
 log "Installing cert-manager CRDs..."
@@ -72,14 +75,21 @@ if [[ -z "$IP" ]]; then
   exit 1
 fi
 
-log "External IP: $IP"
-DOMAIN="{${IP//./-}}.sslip.io"
+log "Ingress External IP: $IP"
+
+if [[ -n "${STATIC_IP:-}" && "$IP" != "$STATIC_IP" ]]; then
+  warn "Ingress IP ($IP) does not match configured STATIC_IP ($STATIC_IP)"
+else
+  log "Ingress IP matches configured STATIC_IP (or no STATIC_IP set)"
+fi
+
+DOMAIN="${IP//./-}.sslip.io"
 log "Using domain: $DOMAIN"
 
 log "Patching gateway-values.yaml with domain: $DOMAIN"
-sed -i "s|host:.*|host: $DOMAIN|" ~/k8s/gateway-values.yaml
+sed -i "s|host:.*|host: ${DOMAIN}|" ~/k8s/gateway-values.yaml
 sed -i "s|secretName:.*|secretName: ${DOMAIN//./-}-tls|" ~/k8s/gateway-values.yaml
-sed -i "s|- .*.sslip.io|- $DOMAIN|" ~/k8s/gateway-values.yaml
+sed -i "s|- .*.sslip.io|- ${DOMAIN}|" ~/k8s/gateway-values.yaml
 
 log "Adding Helm repositories..."
 microk8s helm3 repo add akeyless https://akeylesslabs.github.io/helm-charts || true
