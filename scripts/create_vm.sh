@@ -1,40 +1,44 @@
 #!/bin/bash
-# create_vm.sh
-# Script to provision a GCP VM using gcloud CLI.
-# It loads configuration variables from config/config.properties.
 
-CONFIG_FILE="$(dirname "$0")/../config/config.properties"
+set -euo pipefail
 
-if [ ! -f "$CONFIG_FILE" ]; then
-  echo "Configuration file not found at $CONFIG_FILE"
-  exit 1
-fi
+CONFIG_FILE="./config/config.properties"
 
+log() { echo -e "\033[1;32m[INFO]\033[0m $1"; }
+
+log "Loading configuration from $CONFIG_FILE..."
 source "$CONFIG_FILE"
 
-echo "Authenticating with service account using: $GCLOUD_CREDENTIALS_JSON"
-gcloud auth activate-service-account --key-file "$GCLOUD_CREDENTIALS_JSON"
-
-echo "Updating gcloud components..."
-gcloud components update --quiet
-
-echo "Setting GCP project to: $PROJECT_ID"
+log "Authenticating with gcloud..."
+gcloud auth activate-service-account --key-file="$GCLOUD_CREDENTIALS_JSON"
 gcloud config set project "$PROJECT_ID"
 
-# Reserve a static IP if it doesn't already exist
-if ! gcloud compute addresses describe "$STATIC_IP_NAME" --region="$REGION" &>/dev/null; then
-  echo "Creating static IP: $STATIC_IP_NAME"
+log "Checking if static IP already exists..."
+EXISTING_IP=$(gcloud compute addresses list --filter="name=($STATIC_IP_NAME)" --regions="$REGION" --format="value(address)" || true)
+
+if [ -z "$EXISTING_IP" ]; then
+  log "Creating new static IP..."
   gcloud compute addresses create "$STATIC_IP_NAME" --region="$REGION"
+  STATIC_IP=$(gcloud compute addresses describe "$STATIC_IP_NAME" --region="$REGION" --format="value(address)")
+else
+  log "Using existing static IP..."
+  STATIC_IP="$EXISTING_IP"
 fi
 
-# Get the reserved IP
-STATIC_IP=$(gcloud compute addresses describe "$STATIC_IP_NAME" --region="$REGION" --format="value(address)")
+log "Saving STATIC_IP to config.properties..."
+if grep -q '^STATIC_IP=' "$CONFIG_FILE"; then
+  sed -i "s|^STATIC_IP=.*|STATIC_IP=$STATIC_IP|" "$CONFIG_FILE"
+else
+  echo "STATIC_IP=$STATIC_IP" >> "$CONFIG_FILE"
+fi
 
-echo "Creating VM instance: $INSTANCE_NAME in zone: $ZONE"
-gcloud compute instances create "$INSTANCE_NAME"   --zone="$ZONE"   --machine-type="$MACHINE_TYPE"   --image-family="$IMAGE_FAMILY"   --image-project="debian-cloud"   --address="$STATIC_IP"   --network-tier=PREMIUM   --metadata=startup-script='#!/bin/bash
-    sudo snap install microk8s --classic
-    sudo usermod -a -G microk8s $USER
-    sudo chown -f -R $USER ~/.kube
-  '
+log "Creating VM instance..."
+gcloud compute instances create "$INSTANCE_NAME" \
+  --zone="$ZONE" \
+  --machine-type="$MACHINE_TYPE" \
+  --image-family="$IMAGE_FAMILY" \
+  --image-project="debian-cloud" \
+  --address="$STATIC_IP" \
+  --network-tier=PREMIUM
 
-echo "VM creation initiated. Please wait for the VM to be ready before proceeding."
+log "VM creation complete."

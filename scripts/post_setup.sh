@@ -1,5 +1,4 @@
 #!/bin/bash
-# post_setup.sh
 
 set -euo pipefail
 
@@ -11,7 +10,6 @@ warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
 fail() { echo -e "\033[1;31m[FAIL]\033[0m $1"; }
 
 log "Logging to $LOG_FILE"
-log "Sourcing configuration..."
 CONFIG_FILE=~/config.properties
 if [ -f "$CONFIG_FILE" ]; then
   source "$CONFIG_FILE"
@@ -19,6 +17,14 @@ else
   fail "Configuration file not found at $CONFIG_FILE"
   exit 1
 fi
+
+if [ -z "${STATIC_IP:-}" ]; then
+  fail "STATIC_IP not set in config.properties"
+  exit 1
+fi
+
+DOMAIN="${STATIC_IP//./-}.sslip.io"
+log "Using domain: $DOMAIN"
 
 log "Installing Microk8s if not already present..."
 if ! command -v microk8s &>/dev/null; then
@@ -38,18 +44,15 @@ microk8s config > ~/.kube/config
 sudo chown -R $USER ~/.kube
 
 log "Creating aliases for kubectl and helm3..."
-sudo snap alias microk8s.kubectl kubectl || warn "Failed to alias kubectl"
-sudo snap alias microk8s.helm3 helm || warn "Failed to alias helm"
+sudo snap alias microk8s.kubectl kubectl || true
+sudo snap alias microk8s.helm3 helm || true
 
 log "Adding current user to docker and microk8s groups..."
 sudo usermod -aG docker $USER
 sudo usermod -aG microk8s $USER
 
-# Final microk8s group check
-if groups $USER | grep -qw microk8s; then
-  log "User is already in microk8s group"
-else
-  warn "User $USER was just added to 'microk8s' group. You must log out and back in for permissions to apply."
+if ! groups $USER | grep -qw microk8s; then
+  warn "User $USER added to microk8s group. You must log out and back in for this to take effect."
 fi
 
 log "Installing cert-manager CRDs..."
@@ -63,35 +66,10 @@ microk8s kubectl apply -f ~/k8s/nginx-ingress-service.yaml
 microk8s kubectl apply -f ~/k8s/pv.yml
 microk8s kubectl apply -f ~/k8s/storageclass.yml
 
-log "Waiting for ingress service external IP..."
-for i in {1..20}; do
-  IP=$(microk8s kubectl get svc nginx-ingress-microk8s-controller -n ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
-  if [[ -n "$IP" ]]; then
-    break
-  fi
-  sleep 5
-done
-
-if [[ -z "$IP" ]]; then
-  fail "Failed to retrieve external IP from ingress service"
-  exit 1
-fi
-
-log "Ingress External IP: $IP"
-
-if [[ -n "${STATIC_IP:-}" && "$IP" != "$STATIC_IP" ]]; then
-  warn "Ingress IP ($IP) does not match configured STATIC_IP ($STATIC_IP)"
-else
-  log "Ingress IP matches configured STATIC_IP (or no STATIC_IP set)"
-fi
-
-DOMAIN="${IP//./-}.sslip.io"
-log "Using domain: $DOMAIN"
-
 log "Patching gateway-values.yaml with domain: $DOMAIN"
-sed -i "s|host:.*|host: ${DOMAIN}|" ~/k8s/gateway-values.yaml
+sed -i "s|host:.*|host: $DOMAIN|" ~/k8s/gateway-values.yaml
 sed -i "s|secretName:.*|secretName: ${DOMAIN//./-}-tls|" ~/k8s/gateway-values.yaml
-sed -i "s|- .*.sslip.io|- ${DOMAIN}|" ~/k8s/gateway-values.yaml
+sed -i "s|- .*.sslip.io|- $DOMAIN|" ~/k8s/gateway-values.yaml
 
 log "Adding Helm repositories..."
 microk8s helm3 repo add akeyless https://akeylesslabs.github.io/helm-charts || true
