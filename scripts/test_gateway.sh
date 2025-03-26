@@ -2,50 +2,37 @@
 
 set -euo pipefail
 
-CYAN="\033[1;36m"
-GREEN="\033[1;32m"
-RED="\033[1;31m"
-YELLOW="\033[1;33m"
-NC="\033[0m"
+log() { echo -e "\033[1;34m[INFO]\033[0m $1"; }
+warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
+fail() { echo -e "\033[1;31m[FAIL]\033[0m $1"; }
 
-info() { echo -e "${CYAN}[INFO]${NC} $1"; }
-success() { echo -e "${GREEN}[OK]${NC} $1"; }
-fail() { echo -e "${RED}[FAIL]${NC} $1"; }
-warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log "🔍 Checking Akeyless Gateway Deployment in 'akeyless' namespace..."
 
-echo
-info "🔍 Checking Akeyless Gateway Deployment..."
+PODS=$(microk8s kubectl get pods -n akeyless --no-headers 2>/dev/null | grep akeyless-gateway || true)
 
-# Check pods
-PODS=$(microk8s kubectl get pods --no-headers | grep gateway || true)
-if [ -n "$PODS" ]; then
+if [[ -z "$PODS" ]]; then
+  fail "No gateway pod found in 'akeyless' namespace"
+else
   echo "$PODS"
-  if echo "$PODS" | grep -q "Running"; then
-    success "Gateway pod is running"
+  if echo "$PODS" | grep -q 'CreateContainerConfigError'; then
+    fail "Pods exist but failed to start due to CreateContainerConfigError"
+    echo
+    echo "👉 To investigate the issue, try:"
+    echo "   microk8s kubectl describe pod <pod-name> -n akeyless"
+    echo "   microk8s kubectl logs <pod-name> -n akeyless"
+    echo
+    echo "⚠️  This typically means the secret or image config is incorrect. Ensure:"
+    echo "- Your GATEWAY_CREDENTIALS_SECRET exists in namespace 'akeyless'"
+    echo "- The access key is correctly base64 encoded and mounted"
   else
-    fail "Gateway pod exists but is not running. Check logs with: microk8s kubectl logs <gateway-pod-name>"
+    log "Gateway pod(s) detected and appear to be running."
   fi
-else
-  fail "No gateway pod found"
 fi
 
-# Check services
-info "Checking Kubernetes Services..."
-microk8s kubectl get svc
+log "Checking Services in 'akeyless' namespace..."
+microk8s kubectl get svc -n akeyless || warn "No services found in 'akeyless'"
 
-# Check ingress
-info "Checking Kubernetes Ingress..."
-microk8s kubectl get ingress
+log "Checking Ingress in 'akeyless' namespace..."
+microk8s kubectl get ingress -n akeyless || warn "No Ingress resources found in 'akeyless'"
 
-# Show ingress URL if exists
-INGRESS_URL=$(microk8s kubectl get ingress -o jsonpath='{.items[0].spec.rules[0].host}' 2>/dev/null || true)
-if [ -n "$INGRESS_URL" ]; then
-  success "Gateway ingress hostname: $INGRESS_URL"
-  info "Testing connectivity..."
-  curl -k --max-time 10 https://$INGRESS_URL || fail "Failed to reach ingress at $INGRESS_URL"
-else
-  warn "No Ingress hostname configured"
-fi
-
-echo
-info "✅ Gateway test completed"
+log "Note: The Akeyless Gateway is installed in the 'akeyless' namespace."

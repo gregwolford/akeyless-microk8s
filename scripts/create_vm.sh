@@ -46,3 +46,6 @@ gcloud compute instances create "$INSTANCE_NAME" \
   --network-tier=PREMIUM
 
 log "VM creation complete."
+
+log "Uploading files to VM..."
+gcloud compute scp --zone=us-central1-c --recurse k8s config/config.properties scripts/post_setup.sh scripts/test_gateway.sh scripts/validate_installation.sh scripts/rollback_setup.sh my-microk8s-vm:~
