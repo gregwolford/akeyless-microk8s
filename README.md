@@ -1,4 +1,3 @@
-
 # Akeyless Unified Gateway Deployment on GCP with Microk8s
 
 This repository helps automate the deployment of the Akeyless Unified Gateway on a GCP Virtual Machine using Microk8s and Helm. The installation is script-driven and fully configurable. You'll be able to provision the VM, deploy the gateway, and validate the setup with minimal effort.
@@ -121,6 +120,16 @@ This will:
 - Install the Akeyless Gateway via Helm
 - Log all output to `/var/log/akeyless-post-setup-<timestamp>.log`
 
+🚨 **Important:**
+If you receive a permissions error such as:
+```
+Insufficient permissions to access MicroK8s.
+You can either try again with sudo or add the user gwolford to the 'microk8s' group:
+    sudo usermod -a -G microk8s gwolford
+    sudo chown -R gwolford ~/.kube
+```
+You must log out and log back in (or restart your terminal session) for group changes to take effect.
+
 ### 5. Validate and Test the Deployment
 
 Run the validation script to check installation health:
@@ -129,6 +138,8 @@ Run the validation script to check installation health:
 chmod +x validate_installation.sh
 ./validate_installation.sh
 ```
+
+✅ This script can detect and automatically fix common permission issues such as missing group memberships or socket access errors.
 
 Run the gateway test script to confirm the gateway is reachable:
 
