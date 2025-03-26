@@ -61,6 +61,13 @@ microk8s kubectl apply -f https://github.com/cert-manager/cert-manager/releases/
 log "Applying ClusterIssuer..."
 microk8s kubectl apply -f ~/k8s/lets-encrypt-prod-issuer.yml
 
+
+log "Ensuring 'ingress' namespace exists..."
+if ! microk8s kubectl get namespace ingress >/dev/null 2>&1; then
+  microk8s kubectl create namespace ingress
+  log "'ingress' namespace created."
+fi
+
 log "Applying Nginx ingress and storage resources..."
 microk8s kubectl apply -f ~/k8s/nginx-ingress-service.yaml
 microk8s kubectl apply -f ~/k8s/pv.yml
