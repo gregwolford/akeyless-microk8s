@@ -1,12 +1,16 @@
 #!/bin/bash
 # post_setup.sh
 
+LOG_FILE="/var/log/akeyless-post-setup-20250326-130634.log"
+exec > >(tee -a $LOG_FILE) 2>&1
+
 set -euo pipefail
 
 log() { echo -e "\033[1;32m[INFO]\033[0m $1"; }
 warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
 fail() { echo -e "\033[1;31m[FAIL]\033[0m $1"; }
 
+log "Logging to $LOG_FILE"
 log "Sourcing configuration..."
 CONFIG_FILE=~/config.properties
 if [ -f "$CONFIG_FILE" ]; then
@@ -54,15 +58,35 @@ microk8s kubectl apply -f ~/k8s/nginx-ingress-service.yaml
 microk8s kubectl apply -f ~/k8s/pv.yml
 microk8s kubectl apply -f ~/k8s/storageclass.yml
 
+log "Waiting for ingress service external IP..."
+for i in {1..20}; do
+  IP=$(microk8s kubectl get svc nginx-ingress-microk8s-controller -n ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+  if [[ -n "$IP" ]]; then
+    break
+  fi
+  sleep 5
+done
+
+if [[ -z "$IP" ]]; then
+  fail "Failed to retrieve external IP from ingress service"
+  exit 1
+fi
+
+log "External IP: $IP"
+DOMAIN="{${IP//./-}}.sslip.io"
+log "Using domain: $DOMAIN"
+
+log "Patching gateway-values.yaml with domain: $DOMAIN"
+sed -i "s|host:.*|host: $DOMAIN|" ~/k8s/gateway-values.yaml
+sed -i "s|secretName:.*|secretName: ${DOMAIN//./-}-tls|" ~/k8s/gateway-values.yaml
+sed -i "s|- .*.sslip.io|- $DOMAIN|" ~/k8s/gateway-values.yaml
+
 log "Adding Helm repositories..."
-microk8s helm3 repo add akeyless https://akeylesslabs.github.io/helm-charts
-microk8s helm3 repo add bitnami https://charts.bitnami.com/bitnami
+microk8s helm3 repo add akeyless https://akeylesslabs.github.io/helm-charts || true
+microk8s helm3 repo add bitnami https://charts.bitnami.com/bitnami || true
 microk8s helm3 repo update
 
-log "Verifying ingress service public IP assignment..."
-microk8s kubectl get services -n ingress
-
-log "Installing Akeyless Unified Gateway..."
+log "Installing Akeyless Unified Gateway with domain: $DOMAIN"
 microk8s helm3 install akl-gcp-gw akeyless/akeyless-gateway -n akeyless -f ~/k8s/gateway-values.yaml --create-namespace
 
 log "Post-setup completed successfully."
