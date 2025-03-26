@@ -104,7 +104,7 @@ gateway:
         large_client_header_buffers 4 100k;
     rules:
       - servicePort: gateway
-        hostname: "34.56.141.95.sslip.io"
+        hostname: "34.56.78.90.sslip.io"
     path: /
     pathType: ImplementationSpecific
     tls: true
