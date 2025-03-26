@@ -3,6 +3,7 @@
 set -euo pipefail
 
 CONFIG_FILE="./config/config.properties"
+NGINX_FILE="./k8s/nginx-ingress-service.yaml"
 
 log() { echo -e "\033[1;32m[INFO]\033[0m $1"; }
 
@@ -31,6 +32,9 @@ if grep -q '^STATIC_IP=' "$CONFIG_FILE"; then
 else
   echo "STATIC_IP=$STATIC_IP" >> "$CONFIG_FILE"
 fi
+
+log "Patching nginx-ingress-service.yaml with STATIC_IP..."
+sed -i "s|externalIPs:.*|externalIPs:\n  - $STATIC_IP|" "$NGINX_FILE"
 
 log "Creating VM instance..."
 gcloud compute instances create "$INSTANCE_NAME" \

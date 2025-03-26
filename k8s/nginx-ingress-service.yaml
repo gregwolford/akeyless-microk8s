@@ -9,7 +9,7 @@ spec:
   selector:
     name: nginx-ingress-microk8s
   externalIPs:
-    - 34.56.141.95
+  
   ports:
     - protocol: TCP
       port: 80
