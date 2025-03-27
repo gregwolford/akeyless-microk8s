@@ -53,6 +53,7 @@ fi
 fi
 sudo usermod -a -G microk8s $USER
 sudo chown -f -R $USER ~/.kube
+fi
 
 log "Installing Docker..."
 # sudo apt update && sudo apt install -y docker.io
