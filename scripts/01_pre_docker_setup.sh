@@ -31,6 +31,31 @@ if [ -z "${STATIC_IP:-}" ]; then
   exit 1
 fi
 
+log "Installing Microk8s if not already present..."
+if ! command -v microk8s &>/dev/null; then
+  sudo snap install microk8s --classic
+fi
+
+# Ensure /snap/bin is in PATH for this script
+  export PATH=$PATH:/snap/bin
+
+# Wait for microk8s to be ready
+#   log "Waiting for Microk8s to become available..."
+#   until microk8s status --wait-ready >/dev/null 2>&1; do
+#     sleep 2
+#   done
+# fi
+
+log "Creating kube config..."
+mkdir -p ~/.kube
+microk8s config > ~/.kube/config
+log "Adding Current user to microk8s groups if not already..."
+if ! getent group microk8s > /dev/null; then
+    sudo usermod -a -G microk8s $USER
+fi
+sudo usermod -a -G microk8s $USER
+sudo chown -f -R $USER ~/.kube
+
 log "Installing Docker..."
 # sudo apt update && sudo apt install -y docker.io
 sudo snap install docker --classic

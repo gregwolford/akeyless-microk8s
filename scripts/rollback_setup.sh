@@ -21,12 +21,12 @@ microk8s kubectl delete -f ~/k8s/pv.yml --ignore-not-found
 microk8s kubectl delete -f ~/k8s/storageclass.yml --ignore-not-found
 microk8s kubectl delete namespace akeyless --ignore-not-found
 
-# Remove cert-manager CRDs
-log "Removing cert-manager CRDs..."
-for crd in certificaterequests.cert-manager.io certificates.cert-manager.io challenges.acme.cert-manager.io \
-           clusterissuers.cert-manager.io issuers.cert-manager.io orders.acme.cert-manager.io; do
-  microk8s kubectl delete crd $crd --ignore-not-found
-done
+# # Remove cert-manager CRDs
+# log "Removing cert-manager CRDs..."
+# for crd in certificaterequests.cert-manager.io certificates.cert-manager.io challenges.acme.cert-manager.io \
+#            clusterissuers.cert-manager.io issuers.cert-manager.io orders.acme.cert-manager.io; do
+#   microk8s kubectl delete crd $crd --ignore-not-found
+# done
 
 # Remove Helm repos
 log "Removing Helm repositories..."
