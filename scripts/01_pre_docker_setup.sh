@@ -46,12 +46,10 @@ fi
 #   done
 # fi
 
-log "Creating kube config..."
-mkdir -p ~/.kube
-microk8s config > ~/.kube/config
-log "Adding Current user to microk8s groups if not already..."
-if ! getent group microk8s > /dev/null; then
-    sudo usermod -a -G microk8s $USER
+# log "Adding Current user to microk8s groups if not already..."
+# if ! getent group microk8s > /dev/null; then
+#     sudo usermod -a -G microk8s $USER
+
 fi
 sudo usermod -a -G microk8s $USER
 sudo chown -f -R $USER ~/.kube
@@ -65,5 +63,6 @@ if ! getent group docker > /dev/null; then
 fi
 sudo usermod -aG docker $USER
 
-log "NOTE: You must log out and back in (or reboot) for Docker group changes to take effect."
+log "NOTE: You must execute 'sudo usermod -a -G microk8s <user>' and 'sudo chown -R <user> ~/.kube' , log out, and log back in for Microk8s group changes to take effect."
+    sudo chown -R gwolford ~/.kubelog out and back in (or reboot) for Docker group changes to take effect."
 

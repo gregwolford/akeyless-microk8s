@@ -38,6 +38,10 @@ log "Ensuring snap path..."
 sudo ln -s /var/lib/snapd/snap /snap || true
 export PATH=$PATH:/snap/bin
 
+log "Creating kube config..."
+mkdir -p ~/.kube
+microk8s config > ~/.kube/config
+
 microk8s status --wait-ready
 
 log "Creating aliases for kubectl and helm3..."
@@ -90,6 +94,26 @@ helm repo update
 
 log "Verifying the public IP assignment..."
 microk8s kubectl get services -n ingress
+
+log "Creating Gateway Access Key..."
+# Extract variables from config.properties
+GATEWAY_CREDENTIALS_SECRET=$(grep '^GATEWAY_CREDENTIALS_SECRET=' "$CONFIG_FILE" | cut -d'=' -f2)
+GATEWAY_ACCESS_ID=$(grep '^GATEWAY_ACCESS_ID=' "$CONFIG_FILE" | cut -d'=' -f2)
+GATEWAY_ACCESS_KEY=$(grep '^GATEWAY_ACCESS_KEY=' "$CONFIG_FILE" | cut -d'=' -f2)
+
+# Check for missing variables
+if [[ -z "$GATEWAY_CREDENTIALS_SECRET" || -z "$GATEWAY_ACCESS_ID" || -z "$GATEWAY_ACCESS_KEY" ]]; then
+  echo "❌ One or more required variables are missing in config.properties"
+  exit 1
+fi
+
+echo "🔐 Creating Kubernetes secret: $GATEWAY_CREDENTIALS_SECRET in namespace 'akeyless'"
+
+microk8s kubectl create secret generic "$GATEWAY_CREDENTIALS_SECRET" \
+  --namespace akeyless \
+  --from-literal=access-key="$GATEWAY_ACCESS_KEY" \
+
+echo "✅ Secret created successfully."
 
 log "Patching gateway-values.yaml with domain: $DOMAIN"
 sed -i "s|host:.*|host: $DOMAIN|" ~/k8s/gateway-values.yaml
