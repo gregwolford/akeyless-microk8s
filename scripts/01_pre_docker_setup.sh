@@ -51,9 +51,6 @@ fi
 #     sudo usermod -a -G microk8s $USER
 # fi
 
-sudo usermod -a -G microk8s $USER
-sudo chown -f -R $USER ~/.kube
-
 log "Installing Docker..."
 # sudo apt update && sudo apt install -y docker.io
 sudo snap install docker --classic
@@ -61,7 +58,6 @@ log "Adding current user to docker group (if not already)..."
 if ! getent group docker > /dev/null; then
     sudo groupadd docker
 fi
-sudo usermod -aG docker $USER
 
-log "NOTE: You must log out and log back in for group changes to take effect."
+log "NOTE: Run 'sudo usermod -a -G microk8s $USER', 'sudo chown -f -R $USER ~/.kube', and 'sudo usermod -aG docker $USER', then log out and log back in for group changes to take effect."
 
