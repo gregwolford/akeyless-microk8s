@@ -13,17 +13,16 @@ log "Logging to $LOG_FILE"
 CONFIG_FILE=~/config.properties
 if [ -f "$CONFIG_FILE" ]; then
   source "$CONFIG_FILE"
+else
+  fail "Configuration file not found at $CONFIG_FILE"
+  exit 1
+fi
 
 log "Checking if snap is installed..."
 if ! command -v snap >/dev/null 2>&1; then
   log "Snap not found. Installing snapd..."
   sudo apt update && sudo apt install -y snapd
   sudo systemctl enable --now snapd.socket
-fi
-
-else
-  fail "Configuration file not found at $CONFIG_FILE"
-  exit 1
 fi
 
 if [ -z "${STATIC_IP:-}" ]; then
