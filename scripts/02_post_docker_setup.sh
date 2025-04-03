@@ -115,9 +115,16 @@ microk8s kubectl create secret generic "$GATEWAY_CREDENTIALS_SECRET" \
 echo "✅ Secret created successfully."
 
 log "Patching gateway-values.yaml with domain: $DOMAIN"
-sed -i "s|host:.*|host: $DOMAIN|" ~/k8s/gateway-values.yaml
-sed -i "s|secretName:.*|secretName: ${DOMAIN//./-}-tls|" ~/k8s/gateway-values.yaml
-sed -i "s|- .*.sslip.io|- $DOMAIN|" ~/k8s/gateway-values.yaml
+
+# Patch hostname inside gateway-values.yaml
+sed -i "s|^\( *host:\).*|\\1 $DOMAIN|" ~/k8s/gateway-values.yaml
+
+# Patch the TLS secret name based on domain (dots replaced with dashes)
+sed -i "s|^\( *secretName:\).*|\\1 ${DOMAIN//./-}-tls|" ~/k8s/gateway-values.yaml
+
+# Patch the hosts array if it's in the form '- something.sslip.io'
+sed -i "s|^\( *- \).*\.sslip\.io|\\1$DOMAIN|" ~/k8s/gateway-values.yaml
+
 
 log "Installing the unified gateway..."
 helm install akl-gcp-gw akeyless/akeyless-gateway -n akeyless -f k8s/gateway-values.yaml
