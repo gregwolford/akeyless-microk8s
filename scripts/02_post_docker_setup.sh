@@ -10,11 +10,23 @@ warn() { echo -e "\033[1;33m[WARN]\033[0m $1"; }
 fail() { echo -e "\033[1;31m[FAIL]\033[0m $1"; }
 
 log "Logging to $LOG_FILE"
+# CONFIG_FILE=~/config.properties
+# if [ -f "$CONFIG_FILE" ]; then
+#   source "$CONFIG_FILE"
+# else
+#   fail "Configuration file not found at $CONFIG_FILE"
+#   exit 1
+# fi
+
 CONFIG_FILE=~/config.properties
-if [ -f "$CONFIG_FILE" ]; then
+
+if [[ -f "$CONFIG_FILE" ]]; then
+  log "Loading config from $CONFIG_FILE"
+  set -o allexport
   source "$CONFIG_FILE"
+  set +o allexport
 else
-  fail "Configuration file not found at $CONFIG_FILE"
+  log "ERROR: Config file $CONFIG_FILE not found."
   exit 1
 fi
 
@@ -94,11 +106,25 @@ helm repo update
 log "Verifying the public IP assignment..."
 microk8s kubectl get services -n ingress
 
-log "Creating Gateway Access Key..."
-# Extract variables from config.properties
-GATEWAY_CREDENTIALS_SECRET=$(grep '^GATEWAY_CREDENTIALS_SECRET=' "$CONFIG_FILE" | cut -d'=' -f2)
-GATEWAY_ACCESS_ID=$(grep '^GATEWAY_ACCESS_ID=' "$CONFIG_FILE" | cut -d'=' -f2)
-GATEWAY_ACCESS_KEY=$(grep '^GATEWAY_ACCESS_KEY=' "$CONFIG_FILE" | cut -d'=' -f2)
+log "Sourcing config file...."
+# source "$CONFIG_FILE"
+
+if [[ -z "${GATEWAY_CREDENTIALS_SECRET:-}" || -z "${GATEWAY_ACCESS_ID:-}" || -z "${GATEWAY_ACCESS_KEY:-}" ]]; then
+  fail "❌ One or more required variables (GATEWAY_CREDENTIALS_SECRET, GATEWAY_ACCESS_ID, GATEWAY_ACCESS_KEY) are missing or empty"
+  exit 1
+fi
+
+echo "Using GATEWAY_CREDENTIALS_SECRET=$GATEWAY_CREDENTIALS_SECRET"
+echo "Using GATEWAY_ACCESS_ID=$GATEWAY_ACCESS_ID"
+
+# log "Creating Gateway Access Key..."
+# # Extract variables from config.properties
+# GATEWAY_CREDENTIALS_SECRET=$(grep '^GATEWAY_CREDENTIALS_SECRET=' "$CONFIG_FILE" | cut -d'=' -f2)
+# GATEWAY_ACCESS_ID=$(grep '^GATEWAY_ACCESS_ID=' "$CONFIG_FILE" | cut -d'=' -f2)
+# GATEWAY_ACCESS_KEY=$(grep '^GATEWAY_ACCESS_KEY=' "$CONFIG_FILE" | cut -d'=' -f2)
+
+echo "Using GATEWAY_CREDENTIALS_SECRET=$GATEWAY_CREDENTIALS_SECRET"
+echo "Using GATEWAY_ACCESS_ID=$GATEWAY_ACCESS_ID"
 
 # Check for missing variables
 if [[ -z "$GATEWAY_CREDENTIALS_SECRET" || -z "$GATEWAY_ACCESS_ID" || -z "$GATEWAY_ACCESS_KEY" ]]; then
@@ -110,9 +136,10 @@ echo "🔐 Creating Kubernetes secret: $GATEWAY_CREDENTIALS_SECRET in namespace 
 
 microk8s kubectl create secret generic "$GATEWAY_CREDENTIALS_SECRET" \
   --namespace akeyless \
-  --from-literal=access-key="$GATEWAY_ACCESS_KEY" \
+  --from-literal=gateway-access-key="$GATEWAY_ACCESS_KEY" 
 
 echo "✅ Secret created successfully."
+microk8s kubectl get secret access-key -n akeyless -o yaml
 
 log "Patching gateway-values.yaml with domain: $DOMAIN"
 
@@ -128,6 +155,10 @@ sed -i "s|^\( *- \).*\.sslip\.io|\\1$DOMAIN|" ~/k8s/gateway-values.yaml
 
 log "Installing the unified gateway..."
 helm install akl-gcp-gw akeyless/akeyless-gateway -n akeyless -f k8s/gateway-values.yaml
+
+log "Checking pod status..."
+microk8s kubectl get pods -n akeyless
+microk8s kubectl describe pod -n akeyless -l app.kubernetes.io/name=akeyless-gateway
 
 log "Post-setup completed successfully."
 log "Please run 'source ~/.bashrc' or open a new shell session to apply the alias and KUBECONFIG changes."
