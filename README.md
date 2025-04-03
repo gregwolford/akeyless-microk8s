@@ -27,7 +27,7 @@ This repository automates the deployment of the Akeyless Unified Gateway on a GC
 - Google Cloud CLI (`gcloud`) installed and authenticated
 - Configured `config/config.properties` with the following:
   ```properties
-  STATIC_IP=34.56.141.95
+  STATIC_IP=34.56.78.90
   GATEWAY_CREDENTIALS_SECRET=access-key
   GATEWAY_ACCESS_ID=...
   GATEWAY_ACCESS_KEY=...
@@ -64,30 +64,6 @@ gcloud compute ssh my-microk8s-vm --zone us-central1-c
 ```
 
 This step installs MicroK8s, Helm, and deploys the Akeyless Gateway.
-
-### 5. Test the Gateway
-
-```bash
-./scripts/test_gateway.sh
-```
-
-If successful, you should be able to access your gateway at `https://<STATIC_IP>.sslip.io`.
-
-### 6. Validate the Installation
-
-```bash
-./scripts/validate_installation.sh
-```
-
-This confirms pod readiness and TLS certificate status.
-
-## Rolling Back
-
-To remove the full setup (gateway, Helm release, volumes, secrets):
-
-```bash
-./scripts/rollback_setup.sh
-```
 
 ## Troubleshooting
 
