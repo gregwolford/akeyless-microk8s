@@ -48,4 +48,4 @@ gcloud compute instances create "$INSTANCE_NAME" \
 log "VM creation complete."
 
 log "Uploading files to VM..."
-gcloud compute scp --zone=us-central1-c --recurse k8s config/config.properties scripts/post_setup.sh scripts/test_gateway.sh scripts/validate_installation.sh scripts/rollback_setup.sh scripts/01_pre_docker_setup.sh scripts/02_post_docker_setup.sh my-microk8s-vm:~
+gcloud compute scp --zone=us-central1-c --recurse k8s config/config.properties scripts/01_pre_docker_setup.sh scripts/02_post_docker_setup.sh my-microk8s-vm:~
