@@ -147,7 +147,47 @@ This step installs MicroK8s, Helm, and deploys the Akeyless Gateway.
 
 ## Troubleshooting
 
-- **Ingress unreachable:** Make sure the ingress address reflects your static IP, and `hostNetwork: true` is set in your ingress controller deployment.
+- **Check the pods:**
+```bash
+kubectl get pods -n akeyless
+```
+If they contain a createconfig error rather than running or pending, you likely have an access-key issue. Check the pod by running:
+
+```bash
+kubectl describe pod <pod name> -n akeyless
+```
+ - **Test the IP:**
+ ```bash
+curl -vk https://<your-ip>.sslip.io
+ ```
+ Make sure that it works internally and externally. If it's not available externally, you may need to patch the daemonset to use hostNetwork: true
+ ```bash
+ microk8s kubectl patch daemonset nginx-ingress-microk8s-controller -n ingress \
+  --type='json' \
+  -p='[{"op": "add", "path": "/spec/template/spec/hostNetwork", "value": true}]'
+```
+Then
+
+```bash
+microk8s kubectl rollout restart daemonset nginx-ingress-microk8s-controller -n ingress
+```
+Check Status
+```bash
+microk8s kubectl get ingress -n akeyless
+```
+Your ingress should now show the external address.
+
+- **Ingress unreachable:** Make sure the ingress address reflects your static IP, and `hostNetwork: true` is set in your ingress controller deployment. To test:
+ ```bash
+ kubectl describe ingress akl-gcp-gw-akeyless-gateway -n akeyless
+ ```
+ If the IP address is wrong, update the gateway-values.yaml file and run:
+
+ ```bash
+ helm upgrade --install akl-gcp-gw akeyless/akeyless-gateway -n akeyless -f k8s/gateway-values
+.yaml
+```
+
 - **TLS not issued:** Confirm your cert-manager and ACME challenge solvers are installed and working properly.
 - **CreateContainerConfigError:** Verify the access-key secret exists and contains `gateway-access-key`.
 
