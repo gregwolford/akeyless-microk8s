@@ -114,16 +114,6 @@ if [[ -z "${GATEWAY_CREDENTIALS_SECRET:-}" || -z "${GATEWAY_ACCESS_ID:-}" || -z 
   exit 1
 fi
 
-echo "Using GATEWAY_CREDENTIALS_SECRET=$GATEWAY_CREDENTIALS_SECRET"
-echo "Using GATEWAY_ACCESS_ID=$GATEWAY_ACCESS_ID"
-
-# log "Creating Gateway Access Key..."
-# # Extract variables from config.properties
-# GATEWAY_CREDENTIALS_SECRET=$(grep '^GATEWAY_CREDENTIALS_SECRET=' "$CONFIG_FILE" | cut -d'=' -f2)
-# GATEWAY_ACCESS_ID=$(grep '^GATEWAY_ACCESS_ID=' "$CONFIG_FILE" | cut -d'=' -f2)
-# GATEWAY_ACCESS_KEY=$(grep '^GATEWAY_ACCESS_KEY=' "$CONFIG_FILE" | cut -d'=' -f2)
-
-echo "Using GATEWAY_CREDENTIALS_SECRET=$GATEWAY_CREDENTIALS_SECRET"
 echo "Using GATEWAY_ACCESS_ID=$GATEWAY_ACCESS_ID"
 
 # Check for missing variables
