@@ -23,7 +23,7 @@ fi
 
 echo "Found configmap: $CONFIGMAP_NAME"
 
-TMPFILE=$(mktemp)
+TMPFILE=nginx-configmap.yaml
 
 # Dump current config map
 microk8s kubectl get configmap "$CONFIGMAP_NAME" -n ingress -o yaml > "$TMPFILE"
@@ -35,7 +35,42 @@ yq e '.data."http2-max-header-size" = "64k"' -i "$TMPFILE"
 
 # Apply patched config map
 microk8s kubectl apply -f "$TMPFILE"
-rm "$TMPFILE"
+
+microk8s kubens my-apps
+
+cat << EOF > storageclass.yml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: shared-local-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+EOF
+
+microk8s kubectl apply -f storageclass.yml
+
+cat << EOF > pv.yml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-shared
+spec:
+  capacity:
+    storage: 50Gi  # Adjust as needed
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: shared-local-storage
+  hostPath:
+    path: /mnt/data/shared  # Base directory for shared use
+EOF
+
+kubectl apply -f pv.yml
+
+sudo mkdir -p /mnt/data/shared
+sudo chmod -R 777 /mnt/data/shared
+
+
 
 # Restart NGINX ingress controller to pick up new config
 echo "Restarting NGINX ingress controller to apply changes..."
