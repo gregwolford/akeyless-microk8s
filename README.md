@@ -139,7 +139,6 @@ gcloud compute ssh my-microk8s-vm --zone us-central1-c
 ### 4. Run the Post-Docker Setup
 
 ```bash
-source config.properties
 ./scripts/02_post_docker_setup.sh
 ```
 
