@@ -40,10 +40,22 @@ log "Creating VM instance..."
 gcloud compute instances create "$INSTANCE_NAME" \
   --zone="$ZONE" \
   --machine-type="$MACHINE_TYPE" \
-  --image-family="$IMAGE_FAMILY" \
-  --image-project="debian-cloud" \
-  --address="$STATIC_IP" \
-  --network-tier=PREMIUM
+  --network-interface=address="$STATIC_IP,network-tier=PREMIUM,stack-type=IPV4_ONLY,subnet=example-subnet" \
+  --maintenance-policy="MIGRATE" \
+  --provisioning-model="STANDARD" \
+  --service-account="$SERVICE_ACCOUNT" \
+  --scopes="https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/trace.append" \
+  --tags="my-inbound-rules,allow-all-outbound,http-server,https-server,ssh-server" \
+  --create-disk="auto-delete=yes,boot=yes,device-name=example-lab-base-image-disk,image=projects/ubuntu-os-cloud/global/images/ubuntu-2404-noble-amd64-v20250130,mode=rw,size=200,type=pd-balanced" \
+  --no-shielded-secure-boot \
+  --shielded-vtpm \
+  --shielded-integrity-monitoring \
+  --labels="goog-ec-src=vm_add-gcloud,always_up=false,owner=$OWNER,skip_shutdown=false,tf_created=false" \
+  --reservation-affinity=any
+  #--image-family="$IMAGE_FAMILY" \
+  #--image-project="debian-cloud" \
+  #--address="$STATIC_IP" \
+  #--network-tier=PREMIUM
 
 log "VM creation complete."
 

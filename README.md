@@ -161,16 +161,7 @@ kubectl describe pod <pod name> -n akeyless
 curl -vk https://<your-ip>.sslip.io
  ```
  Make sure that it works internally and externally. If it's not available externally, you may need to patch the daemonset to use hostNetwork: true
- ```bash
- microk8s kubectl patch daemonset nginx-ingress-microk8s-controller -n ingress \
-  --type='json' \
-  -p='[{"op": "add", "path": "/spec/template/spec/hostNetwork", "value": true}]'
-```
-Then
 
-```bash
-microk8s kubectl rollout restart daemonset nginx-ingress-microk8s-controller -n ingress
-```
 Check Status
 ```bash
 microk8s kubectl get ingress -n akeyless

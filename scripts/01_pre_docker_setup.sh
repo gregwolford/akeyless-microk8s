@@ -31,6 +31,9 @@ if [ -z "${STATIC_IP:-}" ]; then
   exit 1
 fi
 
+log "Setting shorter hostname..."
+sudo hostnamectl set-hostname microk8s-vm
+
 log "Installing Microk8s if not already present..."
 if ! command -v microk8s &>/dev/null; then
   sudo snap install microk8s --classic
